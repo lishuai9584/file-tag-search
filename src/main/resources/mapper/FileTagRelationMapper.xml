@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.labelcode.mapper.FileTagRelationMapper">
+
+    <!-- 查询文件的标签列表 -->
+    <select id="selectByFileId" resultType="com.labelcode.entity.FileTagRelation">
+        SELECT *
+        FROM file_tag_relation
+        WHERE file_id = #{fileId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询具有指定标签的文件列表 -->
+    <select id="selectByLabelId" resultType="com.labelcode.entity.FileTagRelation">
+        SELECT *
+        FROM file_tag_relation
+        WHERE label_id = #{labelId}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 批量查询文件标签关联 -->
+    <select id="selectByFileIds" resultType="com.labelcode.entity.FileTagRelation">
+        SELECT *
+        FROM file_tag_relation
+        WHERE file_id IN
+        <foreach item="fileId" collection="fileIds" open="(" separator="," close=")">
+            #{fileId}
+        </foreach>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 查询文件的标签名称数组（用于JSONB查询） -->
+    <select id="selectTagNamesByFileId" resultType="java.lang.String">
+        SELECT l.label_name
+        FROM file_tag_relation ftr
+        INNER JOIN label_library l ON ftr.label_id = l.id
+        WHERE ftr.file_id = #{fileId}
+    </select>
+
+    <!-- 批量查询标签ID列表 -->
+    <select id="selectLabelIdsByFileId" resultType="java.lang.Long">
+        SELECT label_id
+        FROM file_tag_relation
+        WHERE file_id = #{fileId}
+    </select>
+
+    <!-- 合并标签时，使用 USING JOIN 语法快速删除同时拥有新旧标签的记录 -->
+    <delete id="deleteConflictsOnMerge">
+        DELETE FROM file_tag_relation f1
+        USING file_tag_relation f2
+        WHERE f1.file_id = f2.file_id
+          AND f1.label_id = #{oldId}
+          AND f2.label_id = #{newId}
+    </delete>
+</mapper>

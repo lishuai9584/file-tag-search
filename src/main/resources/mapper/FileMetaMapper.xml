@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.labelcode.mapper.FileMetaMapper">
+
+    <!-- 高层下沉：手写原生 Count 解决 3 秒延迟和框架解析器崩溃 Bug -->
+    <select id="countFilesByAdvancedSearch" resultType="long">
+        SELECT COUNT(1) FROM (
+            SELECT 1
+            FROM file_meta fm
+            <if test="datasetId != null">
+                INNER JOIN file_dataset_relation fdr ON fm.id = fdr.file_id AND fdr.dataset_id = #{datasetId}
+            </if>
+            <where>
+                <if test="fileName != null and fileName != ''">
+                    AND fm.file_name ILIKE CONCAT('%', #{fileName}, '%')
+                </if>
+                <if test="fileType != null and fileType != ''">
+                    AND fm.file_type = #{fileType}
+                </if>
+                <if test="tags != null and tags.size > 0">
+                    AND fm.tags @> CAST((
+                        '[' || 
+                        <foreach item="tagId" collection="tags" separator=" || ',' || ">
+                            #{tagId}
+                        </foreach>
+                        || ']'
+                    ) AS jsonb)
+                </if>
+                <if test="metadata != null and metadata.size > 0">
+                    <foreach item="val" index="key" collection="metadata.entrySet()">
+                        AND CAST(fm.metadata AS text) ILIKE CONCAT('%', #{val}, '%')
+                        AND fm.metadata ->> #{key} ILIKE CONCAT('%', #{val}, '%')
+                    </foreach>
+                </if>
+                <if test="startDate != null and startDate != ''">
+                    AND fm.created_at &gt;= CAST(#{startDate} AS TIMESTAMP)
+                </if>
+                <if test="endDate != null and endDate != ''">
+                    AND fm.created_at &lt;= CAST(#{endDate} AS TIMESTAMP)
+                </if>
+            </where>
+            LIMIT 10000
+        ) t
+    </select>
+
+    <!-- 2亿级解耦架构：支持数据集过滤、动态属性查询、标签过滤 -->
+    <select id="findFilesByAdvancedSearch" resultMap="mybatis-plus_FileMeta">
+
+        SELECT
+            fm.id,
+            fm.file_name,
+            fm.file_type,
+            fm.file_path,
+            fm.file_size,
+            fm.tags,
+            fm.metadata,
+            fm.created_at
+        FROM file_meta fm
+
+
+        <if test="datasetId != null">
+            INNER JOIN file_dataset_relation fdr ON fm.id = fdr.file_id AND fdr.dataset_id = #{datasetId}
+        </if>
+        <where>
+            <if test="fileName != null and fileName != ''">
+                AND fm.file_name ILIKE CONCAT('%', #{fileName}, '%')
+            </if>
+            <if test="fileType != null and fileType != ''">
+                AND fm.file_type = #{fileType}
+            </if>
+            <if test="tags != null and tags.size > 0">
+                AND fm.tags @> CAST((
+                    '[' || 
+                    <foreach item="tagId" collection="tags" separator=" || ',' || ">
+                        #{tagId}
+                    </foreach>
+                    || ']'
+                ) AS jsonb)
+            </if>
+            <if test="metadata != null and metadata.size > 0">
+                <foreach item="val" index="key" collection="metadata.entrySet()">
+                    AND CAST(fm.metadata AS text) ILIKE CONCAT('%', #{val}, '%')
+                    AND fm.metadata ->> #{key} ILIKE CONCAT('%', #{val}, '%')
+                </foreach>
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND fm.created_at &gt;= CAST(#{startDate} AS TIMESTAMP)
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND fm.created_at &lt;= CAST(#{endDate} AS TIMESTAMP)
+            </if>
+        </where>
+        <!-- 将抉择权交还 PG 统计解析引擎：由于已建立实际 TRGM 索引，引擎可自主选择倒排或前倾，不再需强制破坏树 -->
+        ORDER BY fm.id DESC
+    </select>
+    <!-- 合并标签时，同步更新物理表中的 JSONB 标签数组 -->
+    <update id="updateJsonTagsOnMerge">
+        UPDATE file_meta 
+        SET tags = (
+            SELECT jsonb_agg(
+                CASE WHEN (t#>>'{}')::bigint = #{oldId} THEN #{newId}::jsonb ELSE t END
+            )
+            FROM jsonb_array_elements(tags) AS t
+        )
+        WHERE tags @&gt; CAST(#{oldId} AS TEXT)::jsonb
+    </update>
+
+    <!-- 手写插入 SQL：利用 ::jsonb 解决类型冲突，不需要任何 Java TypeHandler -->
+    <insert id="insertFileWithJsonb">
+        INSERT INTO file_meta (id, file_name, file_path, file_size, file_type, tags, metadata)
+        VALUES (
+            #{id}, 
+            #{fileName}, 
+            #{filePath}, 
+            #{fileSize}, 
+            #{fileType}, 
+            #{tags}::jsonb, 
+            #{metadata}::jsonb
+        )
+    </insert>
+
+</mapper>
+
+
