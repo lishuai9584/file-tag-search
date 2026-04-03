@@ -49,8 +49,8 @@ BEGIN
                 -- 对应 dataset_id = 3 (普通)
                 ELSE '{"dept": "HR", "confidential": false}'::jsonb
             END,
-            -- 随机打散时间到过去的 365 天内，促使 2 亿数据完美落入不同的按月物理分区表
-            NOW() - (random() * 365) * interval '1 day'
+            -- 均匀打散时间到 2025 ~ 2027 这 3 年内 (约1095天)，促使 2 亿数据完美覆盖所有物理分区表
+            timestamp '2025-01-01 00:00:00' + (random() * 1095) * interval '1 day'
         FROM generate_series(start_id, start_id + batch_size - 1) AS seq_id
         ON CONFLICT (id, created_at) DO NOTHING;
 
@@ -93,7 +93,7 @@ END $$;
 -- 3. 发起调用造数据 (2000批次 * 10万条 = 2亿条)
 -- 注意‼️ 本机测试建议先只跑 100万 条：调用参数改为 (100000, 10) 即可。若要完整 2 亿，请解开下句注释执行。
 
-CALL generate_200m_metadata(100000, 1974);  -- 执行完整的 2 亿数据注入 (建议在服务器中通过 nohup psql 运行)
+CALL generate_200m_metadata(100000, 1374);  -- 执行完整的 2 亿数据注入 (建议在服务器中通过 nohup psql 运行)
 -- CALL generate_200m_metadata(100000, 10);       -- 仅仅生成 100 万条用于快速功能测试
 
 
