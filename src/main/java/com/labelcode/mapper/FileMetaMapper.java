@@ -16,6 +16,11 @@ import java.util.Map;
 public interface FileMetaMapper extends BaseMapper<FileMeta> {
 
     /**
+     * 针对复杂检索手动分配会话级内存，防止 2亿级数据查询出现有损扫描
+     */
+    void setLocalWorkMem();
+
+    /**
      * 多条件、多标签交集查询 (基于PostgreSQL JSONB)
      * 支持分页
      */
@@ -25,7 +30,7 @@ public interface FileMetaMapper extends BaseMapper<FileMeta> {
             @Param("fileType") String fileType,
             @Param("datasetId") Long datasetId,
             @Param("tags") List<Long> tags,
-            @Param("metadata") Map<String, Object> metadata,
+            @Param("metadata") Map<String, String> metadata,
             @Param("startDate") String startDate,
             @Param("endDate") String endDate);
 
@@ -37,7 +42,7 @@ public interface FileMetaMapper extends BaseMapper<FileMeta> {
             @Param("fileType") String fileType,
             @Param("datasetId") Long datasetId,
             @Param("tags") List<Long> tags,
-            @Param("metadata") Map<String, Object> metadata,
+            @Param("metadata") Map<String, String> metadata,
             @Param("startDate") String startDate,
             @Param("endDate") String endDate);
 

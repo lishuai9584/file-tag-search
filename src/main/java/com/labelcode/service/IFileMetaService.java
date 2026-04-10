@@ -15,7 +15,7 @@ public interface IFileMetaService extends IService<FileMeta> {
     /**
      * 高级搜索 (支持分页)
      */
-    IPage<FileMeta> advancedSearch(IPage<FileMeta> page, String fileName, String fileType, Long datasetId, List<String> tags, Map<String, Object> metadata, String startDate, String endDate);
+    IPage<FileMeta> advancedSearch(IPage<FileMeta> page, String fileName, String fileType, Long datasetId, List<Long> tags, Map<String, Object> metadata, String startDate, String endDate);
 
 
 

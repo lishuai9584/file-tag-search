@@ -59,6 +59,12 @@ public class FileMeta implements Serializable {
     @TableField("metadata")
     private String metadata;
 
+    /**
+     * 创建时间 (分区键)
+     */
+    @TableField("created_at")
+    private java.time.LocalDateTime createdAt;
+
 
 
 

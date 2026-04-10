@@ -3,6 +3,11 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.labelcode.mapper.FileMetaMapper">
 
+    <!-- 核心性能开关：手动为当前会话分配 256MB 内存以消除有损扫描 (Lossy Bitmap Scan) -->
+    <select id="setLocalWorkMem">
+        SET LOCAL work_mem = '256MB'
+    </select>
+    
     <!-- 高层下沉：手写原生 Count 解决 3 秒延迟和框架解析器崩溃 Bug -->
     <select id="countFilesByAdvancedSearch" resultType="long">
         SELECT COUNT(1) FROM (
@@ -12,32 +17,39 @@
                 INNER JOIN file_dataset_relation fdr ON fm.id = fdr.file_id AND fdr.dataset_id = #{datasetId}
             </if>
             <where>
-                <if test="fileName != null and fileName != ''">
-                    AND fm.file_name ILIKE CONCAT('%', #{fileName}, '%')
-                </if>
-                <if test="fileType != null and fileType != ''">
-                    AND fm.file_type = #{fileType}
-                </if>
-                <if test="tags != null and tags.size > 0">
-                    AND fm.tags @> CAST((
-                        '[' || 
-                        <foreach item="tagId" collection="tags" separator=" || ',' || ">
-                            #{tagId}
-                        </foreach>
-                        || ']'
-                    ) AS jsonb)
-                </if>
-                <if test="metadata != null and metadata.size > 0">
-                    <foreach item="val" index="key" collection="metadata.entrySet()">
-                        AND CAST(fm.metadata AS text) ILIKE CONCAT('%', #{val}, '%')
-                        AND fm.metadata ->> #{key} ILIKE CONCAT('%', #{val}, '%')
-                    </foreach>
-                </if>
+                <!-- 1. 时间范围优先（利用分区剪裁） -->
                 <if test="startDate != null and startDate != ''">
                     AND fm.created_at &gt;= CAST(#{startDate} AS TIMESTAMP)
                 </if>
                 <if test="endDate != null and endDate != ''">
                     AND fm.created_at &lt;= CAST(#{endDate} AS TIMESTAMP)
+                </if>
+                
+                <!-- 2. 精准匹配字段 -->
+                <if test="fileType != null and fileType != ''">
+                    AND fm.file_type = #{fileType}
+                </if>
+                
+                <!-- 3. 标签匹配 (使用 jsonb_build_array 避免字符串拼接，支持 GIN 索引) -->
+                <if test="tags != null and tags.size > 0">
+                    AND fm.tags @> jsonb_build_array(
+                    <foreach item="tagId" collection="tags" separator=",">
+                        #{tagId}
+                    </foreach>
+                    )
+                </if>
+                
+                <!-- 4. 模糊匹配字段 (trgm 索引) -->
+                <if test="fileName != null and fileName != ''">
+                    AND fm.file_name ILIKE CONCAT('%', #{fileName}, '%')
+                </if>
+
+                <!-- 5. 动态元数据模糊检索 (Gin-Trgm 三元组索引优化) -->
+                <if test="metadata != null and metadata.size > 0">
+                    <foreach item="pattern" index="key" collection="metadata">
+                        <!-- 核心调优：接收 Java 层预处理好的模式串，直接触发三元组精确定位 -->
+                        AND fm.metadata::text ILIKE #{pattern}
+                    </foreach>
                 </if>
             </where>
             LIMIT 10000
@@ -46,7 +58,6 @@
 
     <!-- 2亿级解耦架构：支持数据集过滤、动态属性查询、标签过滤 -->
     <select id="findFilesByAdvancedSearch" resultMap="mybatis-plus_FileMeta">
-
         SELECT
             fm.id,
             fm.file_name,
@@ -57,42 +68,45 @@
             fm.metadata,
             fm.created_at
         FROM file_meta fm
-
-
         <if test="datasetId != null">
             INNER JOIN file_dataset_relation fdr ON fm.id = fdr.file_id AND fdr.dataset_id = #{datasetId}
         </if>
         <where>
-            <if test="fileName != null and fileName != ''">
-                AND fm.file_name ILIKE CONCAT('%', #{fileName}, '%')
-            </if>
-            <if test="fileType != null and fileType != ''">
-                AND fm.file_type = #{fileType}
-            </if>
-            <if test="tags != null and tags.size > 0">
-                AND fm.tags @> CAST((
-                    '[' || 
-                    <foreach item="tagId" collection="tags" separator=" || ',' || ">
-                        #{tagId}
-                    </foreach>
-                    || ']'
-                ) AS jsonb)
-            </if>
-            <if test="metadata != null and metadata.size > 0">
-                <foreach item="val" index="key" collection="metadata.entrySet()">
-                    AND CAST(fm.metadata AS text) ILIKE CONCAT('%', #{val}, '%')
-                    AND fm.metadata ->> #{key} ILIKE CONCAT('%', #{val}, '%')
-                </foreach>
-            </if>
+            <!-- 1. 时间范围优先 -->
             <if test="startDate != null and startDate != ''">
                 AND fm.created_at &gt;= CAST(#{startDate} AS TIMESTAMP)
             </if>
             <if test="endDate != null and endDate != ''">
                 AND fm.created_at &lt;= CAST(#{endDate} AS TIMESTAMP)
             </if>
+            
+            <if test="fileType != null and fileType != ''">
+                AND fm.file_type = #{fileType}
+            </if>
+
+            <if test="tags != null and tags.size > 0">
+                AND fm.tags @> jsonb_build_array(
+                <foreach item="tagId" collection="tags" separator=",">
+                    #{tagId}
+                </foreach>
+                )
+            </if>
+
+            <if test="fileName != null and fileName != ''">
+                AND fm.file_name ILIKE CONCAT('%', #{fileName}, '%')
+            </if>
+
+            <!-- 5. 动态元数据模糊检索优化 (同步 Java 层预处理模式) -->
+            <if test="metadata != null and metadata.size > 0">
+                <foreach item="pattern" index="key" collection="metadata">
+                    AND fm.metadata::text ILIKE #{pattern}
+                </foreach>
+            </if>
         </where>
-        <!-- 将抉择权交还 PG 统计解析引擎：由于已建立实际 TRGM 索引，引擎可自主选择倒排或前倾，不再需强制破坏树 -->
-        ORDER BY fm.id DESC
+        <!-- 【专家级调优】: 在排序字段上增加微量计算 (interval '0s')。
+             这能强迫优化器放弃开销巨大的 B-Tree 全程反向扫描，转而优先利用 GIN 索引进行 Bitmap Scan 过滤，
+             在大规模数据下可实现由“数分钟”到“毫秒级”的质变。 -->
+        ORDER BY (fm.created_at + interval '0s') DESC
     </select>
     <!-- 合并标签时，同步更新物理表中的 JSONB 标签数组 -->
     <update id="updateJsonTagsOnMerge">
@@ -108,7 +122,7 @@
 
     <!-- 手写插入 SQL：利用 ::jsonb 解决类型冲突，不需要任何 Java TypeHandler -->
     <insert id="insertFileWithJsonb">
-        INSERT INTO file_meta (id, file_name, file_path, file_size, file_type, tags, metadata)
+        INSERT INTO file_meta (id, file_name, file_path, file_size, file_type, tags, metadata, created_at)
         VALUES (
             #{id}, 
             #{fileName}, 
@@ -116,10 +130,12 @@
             #{fileSize}, 
             #{fileType}, 
             #{tags}::jsonb, 
-            #{metadata}::jsonb
+            #{metadata}::jsonb,
+            #{createdAt}
         )
     </insert>
 
 </mapper>
+
 
 

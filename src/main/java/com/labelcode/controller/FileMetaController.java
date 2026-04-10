@@ -68,7 +68,7 @@ public class FileMetaController {
         
         String fileName = (String) query.get("fileName");
         String fileType = (String) query.get("fileType");
-        List<String> tags = (List<String>) query.get("tags");
+        List<Long> tags = (List<Long>) query.get("tags");
         Map<String, Object> metadata = (Map<String, Object>) query.get("metadata");
         String startDate = (String) query.get("startDate");
         String endDate = (String) query.get("endDate");
