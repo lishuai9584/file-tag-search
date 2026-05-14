@@ -140,6 +140,15 @@ coverage/
 # ===================================
 # 生成文档
 # ===================================
-*.html
-!index.html
-site/
+javadoc/
+docs/generated/
+
+# ===================================
+# IDE和编辑器特定文件
+# ===================================
+# 保留必要的IDE配置文件
+!.idea/compiler.xml
+!.idea/encodings.xml
+!.idea/jarRepositories.xml
+!.idea/misc.xml
+!.idea/vcs.xml
