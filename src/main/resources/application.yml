@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: label-code
+
+  datasource:
+    # PostgreSQL数据库配置
+    url: jdbc:postgresql://192.168.0.58:5866/highgo
+    username: sysdba
+    password: Hello@1234
+    driver-class-name: org.postgresql.Driver
+
+  # Jackson JSON配置
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.labelcode.entity
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 服务器配置
+server:
+  port: 8080
+  servlet:
+    context-path: /api

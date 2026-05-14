@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标签管理系统 - 前端概览</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.9;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .card h2::before {
+            content: '✓';
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }
+        .feature-list {
+            list-style: none;
+        }
+        .feature-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .feature-list li::before {
+            content: '→ ';
+            color: #667eea;
+            font-weight: bold;
+        }
+        .start-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 40px;
+        }
+        .start-section h2 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        .steps {
+            display: grid;
+            gap: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-content h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .step-content p {
+            color: #666;
+            font-size: 0.95em;
+        }
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        .card-icon {
+            font-size: 3em;
+            display: block;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏷️ 标签管理系统</h1>
+            <p>完整的可视化测试平台</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>🏷️ 标签管理</h2>
+                <ul class="feature-list">
+                    <li>创建自定义标签（名称、颜色、描述）</li>
+                    <li>查询标签列表（支持搜索）</li>
+                    <li>删除标签（带关联检查）</li>
+                    <li>标签合并（批量转移关联）</li>
+                    <li>标签统计（按使用频率）</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>📁 文件标签关联</h2>
+                <ul class="feature-list">
+                    <li>添加单个标签到文件</li>
+                    <li>批量添加多个标签</li>
+                    <li>移除单个标签</li>
+                    <li>批量移除标签</li>
+                    <li>查询文件标签列表</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>🔍 多标签查询</h2>
+                <ul class="feature-list">
+                    <li>选择多个标签</li>
+                    <li>查询同时具有这些标签的文件</li>
+                    <li>基于PostgreSQL JSONB查询</li>
+                    <li>显示查询结果</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>📊 统计数据</h2>
+                <ul class="feature-list">
+                    <li>标签使用统计</li>
+                    <li>标签计数详情</li>
+                    <li>批量标签计数</li>
+                    <li>直观的数据展示</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="highlight">
+            🚀 立即开始使用前端页面
+        </div>
+
+        <div class="start-section">
+            <h2>快速开始</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>启动后端服务</h3>
+                        <p>确保后端服务正在运行（http://localhost:8080/api）</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>打开前端页面</h3>
+                        <p>Windows: 双击 open-frontend.bat<br>Linux/Mac: ./open-frontend.sh</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>开始测试</h3>
+                        <p>在浏览器中体验所有功能</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid" style="margin-top: 40px;">
+            <div class="card" style="text-align: center;">
+                <div class="card-icon">📄</div>
+                <h2>文档</h2>
+                <p style="color: #666; line-height: 1.6;">
+                    查看 <a href="FRONTEND_GUIDE.md" style="color: #667eea; text-decoration: none;">FRONTEND_GUIDE.md</a> 获取详细使用说明
+                </p>
+            </div>
+
+            <div class="card" style="text-align: center;">
+                <div class="card-icon">🎨</div>
+                <h2>高级示例</h2>
+                <p style="color: #666; line-height: 1.6;">
+                    访问 <a href="advanced-features.html" style="color: #667eea; text-decoration: none;">advanced-features.html</a> 查看批量操作演示
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

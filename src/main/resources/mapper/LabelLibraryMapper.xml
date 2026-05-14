@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.labelcode.mapper.LabelLibraryMapper">
+
+    <!-- 根据标签名称查询（忽略大小写） -->
+    <select id="selectByName" resultType="com.labelcode.entity.LabelLibrary">
+        SELECT *
+        FROM label_library
+        WHERE LOWER(label_name) = LOWER(#{labelName})
+    </select>
+
+    <!-- 批量查询标签 -->
+    <select id="selectBatchLabelsByIds" resultType="com.labelcode.entity.LabelLibrary">
+        SELECT * FROM label_library WHERE id IN
+        <foreach item="id" collection="ids" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <update id="refreshTagCount">
+        UPDATE label_library
+        SET tag_count = (SELECT COUNT(*) FROM file_tag_relation WHERE label_id = #{labelId})
+        WHERE id = #{labelId}
+    </update>
+</mapper>

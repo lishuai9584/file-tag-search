@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>标签管理 - 高级示例</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .card h2 { color: #667eea; margin-bottom: 20px; font-size: 1.3em; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer;
+            font-size: 14px; font-weight: 500; transition: all 0.3s;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; transform: translateY(-2px); }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏷️ 标签管理 - 高级示例</h1>
+            <p>批量操作、标签合并、统计报表等高级功能演示</p>
+        </div>
+
+        <div class="grid">
+            <!-- 批量创建标签 -->
+            <div class="card">
+                <h2>批量创建标签</h2>
+                <div class="form-group">
+                    <label>标签名称列表（逗号分隔）</label>
+                    <textarea id="batchLabelNames" rows="4" placeholder="重要,紧急,待处理,已完成,草稿"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>标签颜色</label>
+                    <input type="text" id="batchLabelColor" value="#667eea">
+                </div>
+                <button class="btn btn-primary" onclick="batchCreateLabels()">批量创建</button>
+            </div>
+
+            <!-- 标签批量删除 -->
+            <div class="card">
+                <h2>批量删除标签</h2>
+                <div class="form-group">
+                    <label>标签ID列表（逗号分隔）</label>
+                    <input type="text" id="batchDeleteIds" placeholder="1,2,3,4,5">
+                </div>
+                <button class="btn btn-danger" onclick="batchDeleteLabels()">批量删除</button>
+            </div>
+        </div>
+
+        <div class="grid">
+            <!-- 批量添加文件标签 -->
+            <div class="card">
+                <h2>批量添加文件标签</h2>
+                <div class="form-group">
+                    <label>文件ID列表（逗号分隔）</label>
+                    <input type="text" id="batchFileIds" placeholder="1,2,3,4,5">
+                </div>
+                <div class="form-group">
+                    <label>标签ID</label>
+                    <input type="number" id="batchFileLabelId" placeholder="1">
+                </div>
+                <button class="btn btn-primary" onclick="batchAddFileLabels()">批量添加</button>
+            </div>
+
+            <!-- 批量移除文件标签 -->
+            <div class="card">
+                <h2>批量移除文件标签</h2>
+                <div class="form-group">
+                    <label>文件ID列表（逗号分隔）</label>
+                    <input type="text" id="batchRemoveFileIds" placeholder="1,2,3,4,5">
+                </div>
+                <div class="form-group">
+                    <label>标签ID列表（逗号分隔）</label>
+                    <input type="text" id="batchRemoveLabelIds" placeholder="1,2,3">
+                </div>
+                <button class="btn btn-danger" onclick="batchRemoveFileLabels()">批量移除</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>API调用示例</h2>
+            <p>以下是所有API接口的调用示例，您可以直接复制使用：</p>
+            <div class="code-block">
+<pre>
+// 1. 创建标签
+POST /api/labels
+{
+  "labelName": "重要文档",
+  "color": "#EF4444",
+  "sortOrder": 1,
+  "description": "标记为重要的文档"
+}
+
+// 2. 批量创建标签
+POST /api/labels/batch
+[
+  {"labelName": "标签1", "color": "#EF4444", "sortOrder": 1},
+  {"labelName": "标签2", "color": "#10B981", "sortOrder": 2},
+  {"labelName": "标签3", "color": "#3B82F6", "sortOrder": 3}
+]
+
+// 3. 删除标签
+DELETE /api/labels/{id}
+
+// 4. 标签合并
+POST /api/labels/merge
+{
+  "oldLabelId": 1,
+  "newLabelId": 2
+}
+
+// 5. 为文件添加标签
+POST /api/file-tags?fileId=1&labelId=2
+
+// 6. 批量为文件添加标签
+POST /api/file-tags/batch?fileId=1&labelIds=1,2,3
+
+// 7. 移除文件标签
+DELETE /api/file-tags/{fileId}/{labelId}
+
+// 8. 批量移除文件标签
+DELETE /api/file-tags/{fileId}/batch?labelIds=1,2,3
+
+// 9. 多标签交集查询
+POST /api/file-tags/search/intersection
+{
+  "labelIds": [1, 2, 3]
+}
+
+// 10. 标签统计
+GET /api/labels/statistics
+
+// 11. 标签计数
+GET /api/file-tags/count/{labelId}
+
+// 12. 批量标签计数
+GET /api/file-tags/count/batch?labelIds=1,2,3
+</pre>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>批量操作流程示例</h2>
+            <div class="result">
+                <strong>场景：为一个项目添加多个标签</strong><br><br>
+                1. 批量创建标签：<br>
+                <code>
+                   标签名: [会议, 财务, 重要, 本周任务]<br>
+                   颜色: #667eea<br>
+                   结果: 创建了4个标签
+                </code><br><br>
+
+                2. 批量添加标签：<br>
+                <code>
+                   文件ID: [1, 2, 3, 4, 5]<br>
+                   标签ID: [1] (新创建的"会议"标签)<br>
+                   结果: 5个文件都添加了"会议"标签
+                </code><br><br>
+
+                3. 多标签查询：<br>
+                <code>
+                   选择标签: [会议, 财务, 重要]<br>
+                   结果: 查询同时具有这些标签的文件
+                </code><br><br>
+
+                4. 标签合并：<br>
+                <code>
+                   源标签: "本周任务" (ID: 4)<br>
+                   目标标签: "会议" (ID: 1)<br>
+                   结果: 将"本周任务"的关联合并到"会议"标签
+                </code>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+
+        function showToast(message, type = 'info') {
+            alert(message);
+        }
+
+        async function apiRequest(url, options = {}) {
+            try {
+                const response = await fetch(`${API_BASE}${url}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || '请求失败');
+                }
+
+                return data;
+            } catch (error) {
+                console.error('API请求错误:', error);
+                showToast(`错误: ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function batchCreateLabels() {
+            const names = document.getElementById('batchLabelNames').value
+                .split(',')
+                .map(n => n.trim())
+                .filter(n => n);
+
+            if (names.length === 0) {
+                showToast('请输入标签名称列表', 'error');
+                return;
+            }
+
+            const color = document.getElementById('batchLabelColor').value;
+
+            try {
+                const labels = names.map(name => ({
+                    labelName: name,
+                    color: color,
+                    sortOrder: 0,
+                    description: ''
+                }));
+
+                for (const label of labels) {
+                    await apiRequest('/labels', {
+                        method: 'POST',
+                        body: JSON.stringify(label)
+                    });
+                }
+
+                showToast(`成功创建 ${labels.length} 个标签`, 'success');
+            } catch (error) {
+                console.error('批量创建失败:', error);
+            }
+        }
+
+        async function batchDeleteLabels() {
+            const ids = document.getElementById('batchDeleteIds').value
+                .split(',')
+                .map(id => parseInt(id.trim()))
+                .filter(id => !isNaN(id));
+
+            if (ids.length === 0) {
+                showToast('请输入标签ID列表', 'error');
+                return;
+            }
+
+            if (!confirm(`确定要删除这 ${ids.length} 个标签吗？`)) return;
+
+            try {
+                for (const id of ids) {
+                    await apiRequest(`/labels/${id}`, { method: 'DELETE' });
+                }
+                showToast(`成功删除 ${ids.length} 个标签`, 'success');
+            } catch (error) {
+                console.error('批量删除失败:', error);
+            }
+        }
+
+        async function batchAddFileLabels() {
+            const fileIds = document.getElementById('batchFileIds').value
+                .split(',')
+                .map(id => parseInt(id.trim()))
+                .filter(id => !isNaN(id));
+
+            const labelId = parseInt(document.getElementById('batchFileLabelId').value);
+
+            if (fileIds.length === 0 || !labelId) {
+                showToast('请输入有效的文件ID和标签ID', 'error');
+                return;
+            }
+
+            try {
+                for (const fileId of fileIds) {
+                    await apiRequest('/file-tags', {
+                        method: 'POST',
+                        params: { fileId, labelId }
+                    });
+                }
+                showToast(`成功为 ${fileIds.length} 个文件添加标签`, 'success');
+            } catch (error) {
+                console.error('批量添加失败:', error);
+            }
+        }
+
+        async function batchRemoveFileLabels() {
+            const fileIds = document.getElementById('batchRemoveFileIds').value
+                .split(',')
+                .map(id => parseInt(id.trim()))
+                .filter(id => !isNaN(id));
+
+            const labelIds = document.getElementById('batchRemoveLabelIds').value
+                .split(',')
+                .map(id => parseInt(id.trim()))
+                .filter(id => !isNaN(id));
+
+            if (fileIds.length === 0 || labelIds.length === 0) {
+                showToast('请输入有效的文件ID和标签ID列表', 'error');
+                return;
+            }
+
+            if (!confirm(`确定要批量移除这 ${fileIds.length} 个文件的 ${labelIds.length} 个标签吗？`)) return;
+
+            try {
+                for (const fileId of fileIds) {
+                    for (const labelId of labelIds) {
+                        await apiRequest(`/file-tags/${fileId}/${labelId}`, { method: 'DELETE' });
+                    }
+                }
+                showToast(`成功移除 ${fileIds.length * labelIds.length} 个标签关联`, 'success');
+            } catch (error) {
+                console.error('批量移除失败:', error);
+            }
+        }
+    </script>
+</body>
+</html>
